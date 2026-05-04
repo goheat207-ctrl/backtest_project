@@ -1043,6 +1043,42 @@ color: var(--orange);
         color: var(--muted);
         font-size: 14px;
       }
+      .api-status-banner {
+        display: none;
+        position: fixed;
+        top: 14px;
+        right: 14px;
+        z-index: 1200;
+        max-width: 430px;
+        background: var(--surface);
+        border: 1px solid var(--orange);
+        border-left: 4px solid var(--orange);
+        padding: 12px 14px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+      }
+      .api-status-banner.show {
+        display: block;
+      }
+      .api-status-title {
+        color: var(--orange);
+        font-family: var(--display);
+        font-size: 17px;
+        font-weight: 800;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 5px;
+      }
+      .api-status-body,
+      .api-status-detail {
+        color: var(--text2);
+        font-size: 12px;
+        line-height: 1.5;
+      }
+      .api-status-detail {
+        color: var(--muted);
+        margin-top: 6px;
+        word-break: break-word;
+      }
       .spinner {
         display: inline-block;
         width: 13px;

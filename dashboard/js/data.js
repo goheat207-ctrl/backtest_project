@@ -554,21 +554,32 @@
       let csvRows = [];
       let selectedTrades = new Set();
       let apiMetrics = {};
+      let apiConnected = false;
 
       // ============================================================
       // STORAGE
       // ============================================================
-      async function saveGoals() {
-        try {
-          await fetch('/api/goals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(goals),
-          });
-        } catch (e) {
-          // Fallback: save to localStorage if server unavailable
-          localStorage.setItem('smc_goals', JSON.stringify(goals));
+      function setApiStatus(ok, detail) {
+        apiConnected = ok;
+        let banner = document.getElementById("api-status-banner");
+        if (!banner) {
+          banner = document.createElement("div");
+          banner.id = "api-status-banner";
+          banner.className = "api-status-banner";
+          document.body.appendChild(banner);
         }
+
+        if (ok) {
+          banner.classList.remove("show");
+          banner.innerHTML = "";
+          return;
+        }
+
+        banner.innerHTML =
+          '<div class="api-status-title">Dashboard is not connected to your database</div>' +
+          '<div class="api-status-body">Local: start <strong>run_dashboard.bat</strong>, then open <strong>http://localhost:5000</strong>. Live site: reload the PythonAnywhere web app and make sure <strong>data/journal.db</strong> was uploaded there too.</div>' +
+          (detail ? `<div class="api-status-detail">${detail}</div>` : "");
+        banner.classList.add("show");
       }
 
       async function loadData() {
@@ -594,19 +605,12 @@
           // Purely new manual trades (not edits of imported trades)
           const newManual = manualTrades.filter(t => !importedById.has(t.id));
           trades = [...mergedImported, ...newManual];
+          setApiStatus(true);
         } catch (e) {
-          console.warn('Flask API not available, using demo data:', e.message);
-          const st = localStorage.getItem('smc_trades');
-          const jt = localStorage.getItem('trades');
-          if (st) {
-            trades = JSON.parse(st);
-          } else if (jt) {
-            trades = JSON.parse(jt).map(adaptApiTrade);
-            localStorage.setItem('smc_trades', JSON.stringify(trades));
-          } else {
-            trades = [...DUMMY_TRADES];
-            localStorage.setItem('smc_trades', JSON.stringify(trades));
-          }
+          console.warn('Flask API not available:', e.message);
+          trades = [];
+          apiMetrics = {};
+          setApiStatus(false, e.message);
           const sg = localStorage.getItem('smc_goals');
           if (sg) goals = JSON.parse(sg);
         }
@@ -649,8 +653,19 @@
       function saveTrades() {
         localStorage.setItem("smc_trades", JSON.stringify(trades));
       }
-      function saveGoals() {
-        localStorage.setItem("smc_goals", JSON.stringify(goals));
+      async function saveGoals() {
+        try {
+          const resp = await fetch('/api/goals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(goals),
+          });
+          if (!resp.ok) throw new Error('API unavailable');
+          setApiStatus(true);
+        } catch (e) {
+          localStorage.setItem("smc_goals", JSON.stringify(goals));
+          setApiStatus(false, e.message);
+        }
       }
       function loadPlaybook() {
         const sp = localStorage.getItem("smc_playbook");

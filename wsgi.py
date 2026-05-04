@@ -1,8 +1,7 @@
 import sys
 import os
 
-# Replace 'YOURNAME' with your PythonAnywhere username
-project_home = '/home/YOURNAME/backtest_project'
+project_home = '/home/goheat207/backtest_project'
 
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
