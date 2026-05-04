@@ -406,11 +406,14 @@ def health():
 # ── ENTRY POINT ────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_ENV") != "production"
     print("\n" + "="*60)
     print("  TOS Trading Journal — Flask Bridge Server")
     print("="*60)
-    print(f"  Dashboard:  http://localhost:5000")
-    print(f"  API health: http://localhost:5000/api/health")
+    print(f"  Dashboard:  http://localhost:{port}")
+    print(f"  API health: http://localhost:{port}/api/health")
     print(f"  DB path:    {ROOT / 'data' / 'journal.db'}")
     print("="*60 + "\n")
-    app.run(host="127.0.0.1", port=5000, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=debug)
