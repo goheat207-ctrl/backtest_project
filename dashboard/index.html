@@ -1,0 +1,1015 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Small Cap Trading Dashboard</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Barlow+Condensed:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/components.css" />
+  </head>
+  <body>
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+      <div class="sb-logo">
+        <div class="sb-logo-tag">Backtest LAB™</div>
+        <h1>Small<span style="color: var(--text)">Cap</span></h1>
+        <p>Trading Desk</p>
+      </div>
+      <nav class="sb-nav">
+        <div class="nav-section-lbl">// System</div>
+        <div
+          class="nav-item active"
+          data-tab="dashboard"
+          onclick="switchTab('dashboard')"
+        >
+          <span class="nav-num">01</span><span>Dashboard</span>
+        </div>
+        <div class="nav-item" data-tab="log" onclick="switchTab('log')">
+          <span class="nav-num">02</span><span>Daily Log</span>
+        </div>
+        <div
+          class="nav-item"
+          data-tab="playbook"
+          onclick="switchTab('playbook')"
+        >
+          <span class="nav-num">03</span><span>Playbook</span>
+        </div>
+        <div class="nav-item" data-tab="coach" onclick="switchTab('coach')">
+          <span class="nav-num">04</span><span>Coach</span>
+        </div>
+        <div
+          class="nav-item"
+          data-tab="calendar"
+          onclick="switchTab('calendar')"
+        >
+          <span class="nav-num">05</span><span>Calendar</span>
+        </div>
+        <div
+          class="nav-item"
+          data-tab="analytics"
+          onclick="switchTab('analytics')"
+        >
+          <span class="nav-num">06</span><span>Analytics</span>
+        </div>
+      </nav>
+      <div class="sb-footer">
+        <div
+          style="
+            color: var(--orange);
+            font-family: var(--display);
+            font-weight: 700;
+            font-size: 16px;
+            letter-spacing: 2px;
+          "
+        >
+          // STATUS
+        </div>
+        <div>v2.0 · localStorage</div>
+        <div>4:15 PM Review</div>
+        <div
+          id="sb-trade-count"
+          style="margin-top: 4px; color: var(--orange)"
+        ></div>
+      </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+      <!-- ===== TAB 1: DASHBOARD ===== -->
+      <div id="tab-dashboard" class="tab-panel active">
+        <div class="tab-header">
+          <div>
+            <div class="tab-eyebrow">// Overview</div>
+            <div class="tab-title">Dashboard</div>
+            <div class="tab-sub" id="dash-date-range"></div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <div class="dash-window-btns">
+              <button
+                class="dash-window-btn"
+                data-days="30"
+                onclick="setDashWindow(30)"
+              >
+                30D
+              </button>
+              <button
+                class="dash-window-btn"
+                data-days="60"
+                onclick="setDashWindow(60)"
+              >
+                60D
+              </button>
+              <button
+                class="dash-window-btn active"
+                data-days="90"
+                onclick="setDashWindow(90)"
+              >
+                90D
+              </button>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="openGoalsModal()">
+              Edit Goals
+            </button>
+          </div>
+        </div>
+        <!-- Unified account bar -->
+        <div id="acct-bar"></div>
+        <!-- 6 primary stats -->
+        <div class="grid-6" id="primary-stats"></div>
+        <!-- 4 secondary stats -->
+        <div class="grid-4" id="secondary-stats"></div>
+        <!-- Goal/Risk + Goals -->
+        <div id="gr-card"></div>
+        <div class="goals-card">
+          <div class="goals-header">
+            <span class="section-label">Goal Progress</span>
+            <span
+              style="font-size: 16px; color: var(--muted)"
+              id="goal-date-info"
+            ></span>
+          </div>
+          <div class="goals-grid" id="goals-display"></div>
+        </div>
+        <!-- Charts 2x2 -->
+        <div class="charts-grid">
+          <div class="chart-card">
+            <div class="chart-title">Cumulative P&amp;L</div>
+            <div style="position: relative; height: 230px">
+              <canvas id="chart-cumulative"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Daily P&amp;L</div>
+            <div style="position: relative; height: 230px">
+              <canvas id="chart-daily"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">Win Rate by Pattern</div>
+            <div style="position: relative; height: 340px">
+              <canvas id="chart-winrate"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-title">P&amp;L by Pattern</div>
+            <div style="position: relative; height: 340px">
+              <canvas id="chart-pnl-pattern"></canvas>
+            </div>
+          </div>
+        </div>
+        <!-- Recent Trades -->
+        <div id="recent-trades"></div>
+      </div>
+
+      <!-- ===== TAB 2: DAILY LOG ===== -->
+      <div id="tab-log" class="tab-panel">
+        <div class="tab-header">
+          <div>
+            <div class="tab-eyebrow">// Trade History</div>
+            <div class="tab-title">Daily Log</div>
+            <div class="tab-sub" id="log-count-label"></div>
+          </div>
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="openCsvModal()">
+              Import CSV
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportTrades()">
+              Export CSV
+            </button>
+          </div>
+        </div>
+        <!-- Bulk delete bar -->
+        <div class="bulk-bar" id="bulk-bar">
+          <span class="bulk-count" id="bulk-count">0 selected</span>
+          <div class="flex gap-8">
+            <button class="btn btn-secondary btn-sm" onclick="clearSelection()">
+              Clear Selection
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteSelected()">
+              Delete Selected
+            </button>
+          </div>
+        </div>
+        <!-- Add trade toggle -->
+        <div class="add-toggle-bar" onclick="toggleAddForm()">
+          <span class="add-toggle-txt" id="add-toggle-label">+ Add Trade</span>
+          <span style="color: var(--muted); font-size: 13px"
+            >click to expand</span
+          >
+        </div>
+        <!-- Add trade form -->
+        <div class="form-wrap" id="add-trade-form">
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-bottom: 14px;
+            "
+          >
+            <span
+              style="font-size: 15px; color: var(--green); font-weight: 600"
+              id="form-title-label"
+              >New Trade</span
+            >
+            <button class="btn btn-secondary btn-sm" onclick="resetForm()">
+              Clear
+            </button>
+          </div>
+          <!-- Core -->
+          <div class="form-sect">Core Trade Data</div>
+          <div class="fgrid fgrid-4" style="margin-bottom: 10px">
+            <div class="fg">
+              <label>Date</label><input type="date" id="f-date" />
+            </div>
+            <div class="fg">
+              <label>Ticker</label
+              ><input
+                type="text"
+                id="f-ticker"
+                placeholder="RGTI"
+                oninput="this.value = this.value.toUpperCase()"
+              />
+            </div>
+            <div class="fg">
+              <label>Pattern</label>
+              <select id="f-pattern">
+                <option value="">— Select —</option>
+                <option>Gap &amp; Go</option>
+                <option>Premarket High Break</option>
+                <option>VWAP Reclaim</option>
+                <option>First Pullback</option>
+                <option>Opening Range Break</option>
+                <option>Daily Breakout</option>
+                <option>Multi-Day Breakout</option>
+                <option>Dip Buy</option>
+                <option>LOD Reversal</option>
+                <option>Short Breakdown</option>
+                <option>Parabolic Short</option>
+                <option>Failed Breakout Short</option>
+              </select>
+            </div>
+            <div class="fg">
+              <label>Direction</label>
+              <div class="tog-grp" id="tog-direction">
+                <button
+                  class="tog-btn on-long"
+                  data-val="Long"
+                  onclick="setTog('direction', this)"
+                >
+                  Long
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="Short"
+                  onclick="setTog('direction', this)"
+                >
+                  Short
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="fgrid fgrid-4">
+            <div class="fg">
+              <label>Entry Price</label
+              ><input
+                type="number"
+                id="f-entry"
+                step="0.01"
+                placeholder="0.00"
+                oninput="calcPnl()"
+              />
+            </div>
+            <div class="fg">
+              <label>Exit Price</label
+              ><input
+                type="number"
+                id="f-exit"
+                step="0.01"
+                placeholder="0.00"
+                oninput="calcPnl()"
+              />
+            </div>
+            <div class="fg">
+              <label>Shares</label
+              ><input
+                type="number"
+                id="f-shares"
+                placeholder="0"
+                oninput="calcPnl()"
+              />
+            </div>
+            <div class="fg">
+              <label>P&amp;L ($)</label
+              ><input
+                type="number"
+                id="f-pnl"
+                step="0.01"
+                placeholder="auto-calc"
+              />
+            </div>
+          </div>
+          <!-- Small Cap -->
+          <div class="form-sect">Small Cap Checklist</div>
+          <div class="fgrid fgrid-4" style="margin-bottom: 10px">
+            <div class="fg">
+              <label>Catalyst?</label>
+              <div class="tog-grp" id="tog-catalyst">
+                <button
+                  class="tog-btn on-yes"
+                  data-val="true"
+                  onclick="setTog('catalyst', this)"
+                >
+                  Yes
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="false"
+                  onclick="setTog('catalyst', this)"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Catalyst Type</label
+              ><input
+                type="text"
+                id="f-cat-type"
+                placeholder="FDA, earnings…"
+              />
+            </div>
+            <div class="fg">
+              <label>Rel Volume</label
+              ><input
+                type="number"
+                id="f-relvol"
+                step="0.1"
+                placeholder="8.2"
+              />
+            </div>
+            <div class="fg">
+              <label>Float (M)</label
+              ><input type="number" id="f-float" step="0.1" placeholder="2.4" />
+            </div>
+          </div>
+          <div class="fgrid fgrid-2">
+            <div class="fg">
+              <label>Premarket High</label
+              ><input
+                type="number"
+                id="f-pmhigh"
+                step="0.01"
+                placeholder="0.00"
+              />
+            </div>
+            <div class="fg">
+              <label>Gap % at Open</label
+              ><input type="number" id="f-gap" step="0.1" placeholder="18.5" />
+            </div>
+          </div>
+          <!-- Execution -->
+          <div class="form-sect">Execution Quality</div>
+          <div class="fgrid fgrid-3" style="margin-bottom: 10px">
+            <div class="fg">
+              <label>Entry Grade</label>
+              <div class="tog-grp" id="tog-entryGrade">
+                <button
+                  class="tog-btn on-a"
+                  data-val="A"
+                  onclick="setTog('entryGrade', this)"
+                >
+                  A
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="B"
+                  onclick="setTog('entryGrade', this)"
+                >
+                  B
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="C"
+                  onclick="setTog('entryGrade', this)"
+                >
+                  C
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Exit Grade</label>
+              <div class="tog-grp" id="tog-exitGrade">
+                <button
+                  class="tog-btn on-a"
+                  data-val="A"
+                  onclick="setTog('exitGrade', this)"
+                >
+                  A
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="B"
+                  onclick="setTog('exitGrade', this)"
+                >
+                  B
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="C"
+                  onclick="setTog('exitGrade', this)"
+                >
+                  C
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Followed Rules?</label>
+              <div class="tog-grp" id="tog-followedRules">
+                <button
+                  class="tog-btn on-yes"
+                  data-val="true"
+                  onclick="setTog('followedRules', this)"
+                >
+                  Yes
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="false"
+                  onclick="setTog('followedRules', this)"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+          <div class="fgrid fgrid-2">
+            <div class="fg">
+              <label>Emotional State</label>
+              <div class="tog-grp" id="tog-emotionalState">
+                <button
+                  class="tog-btn on-calm"
+                  data-val="Calm"
+                  onclick="setTog('emotionalState', this)"
+                >
+                  Calm
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="Slightly Anxious"
+                  onclick="setTog('emotionalState', this)"
+                >
+                  Anxious
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="Reactive"
+                  onclick="setTog('emotionalState', this)"
+                >
+                  Reactive
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Sized Correctly?</label>
+              <div class="tog-grp" id="tog-sizedCorrectly">
+                <button
+                  class="tog-btn on-yes"
+                  data-val="true"
+                  onclick="setTog('sizedCorrectly', this)"
+                >
+                  Yes
+                </button>
+                <button
+                  class="tog-btn"
+                  data-val="false"
+                  onclick="setTog('sizedCorrectly', this)"
+                >
+                  No
+                </button>
+              </div>
+            </div>
+          </div>
+          <!-- Dilution -->
+          <div class="form-sect">Dilution Data</div>
+          <div class="fgrid fgrid-2" style="margin-bottom: 10px">
+            <div class="fg">
+              <label>Dilution Type (select all that apply)</label>
+              <div class="dil-type-grp" id="f-dil-type-grp">
+                <button
+                  class="dil-btn"
+                  data-val="ATM"
+                  onclick="toggleDilType(this)"
+                >
+                  ATM
+                </button>
+                <button
+                  class="dil-btn"
+                  data-val="S-3 Shelf"
+                  onclick="toggleDilType(this)"
+                >
+                  S-3 Shelf
+                </button>
+                <button
+                  class="dil-btn"
+                  data-val="Warrants"
+                  onclick="toggleDilType(this)"
+                >
+                  Warrants
+                </button>
+                <button
+                  class="dil-btn"
+                  data-val="Convertibles"
+                  onclick="toggleDilType(this)"
+                >
+                  Convertibles
+                </button>
+                <button
+                  class="dil-btn"
+                  data-val="PIPE"
+                  onclick="toggleDilType(this)"
+                >
+                  PIPE
+                </button>
+                <button
+                  class="dil-btn"
+                  data-val="Offering"
+                  onclick="toggleDilType(this)"
+                >
+                  Offering
+                </button>
+              </div>
+            </div>
+            <div class="fg">
+              <label>Dilution Status</label>
+              <select id="f-dil-status">
+                <option value="">— Select —</option>
+                <option>None</option>
+                <option>Historical</option>
+                <option>Active</option>
+                <option>Recently Active</option>
+              </select>
+            </div>
+          </div>
+          <div class="fgrid fgrid-3" style="margin-bottom: 10px">
+            <div class="fg">
+              <label>ATM Remaining ($M)</label>
+              <input
+                type="number"
+                id="f-dil-atm"
+                step="0.01"
+                placeholder="0.00"
+              />
+            </div>
+            <div class="fg">
+              <label>Warrant Shares</label>
+              <input
+                type="number"
+                id="f-dil-warrants"
+                step="1"
+                placeholder="0"
+              />
+            </div>
+            <div class="fg">
+              <label>Convertible Shares</label>
+              <input type="number" id="f-dil-conv" step="1" placeholder="0" />
+            </div>
+          </div>
+          <div class="fg mb-12">
+            <label>Dilution Notes</label>
+            <textarea
+              id="f-dil-notes"
+              placeholder="Shelf registration details, warrant strike prices, conversion terms…"
+            ></textarea>
+          </div>
+          <!-- Write-up -->
+          <div class="form-sect">Post-Trade Write-Up</div>
+          <div class="fg mb-12">
+            <label>Trade Narrative (feeds Performance Coach)</label>
+            <textarea
+              id="f-writeup"
+              placeholder="What happened? What did you do well? What would you do differently?"
+            ></textarea>
+          </div>
+          <div
+            style="
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              margin-top: 4px;
+            "
+          >
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                font-size: 14px;
+                color: var(--muted);
+                cursor: pointer;
+              "
+            >
+              <input
+                type="checkbox"
+                id="f-bestop"
+                style="accent-color: gold; width: 14px; height: 14px"
+              />
+              <span>⭐ Best Op of the Day</span>
+            </label>
+            <div class="flex gap-8">
+              <button class="btn btn-secondary" onclick="toggleAddForm()">
+                Cancel
+              </button>
+              <button class="btn btn-primary" onclick="submitTrade()">
+                Save Trade
+              </button>
+            </div>
+          </div>
+        </div>
+        <!-- Best Op Banner -->
+        <div class="bestop-banner" id="bestop-banner">
+          <div class="bestop-label">⭐ Best Op of the Day</div>
+          <div
+            id="bestop-content"
+            style="font-size: 14px; color: var(--text)"
+          ></div>
+        </div>
+        <!-- Trade Table -->
+        <div class="tbl-wrap">
+          <div class="tbl-header">
+            <span class="section-label">Trade History</span>
+            <span
+              id="tbl-count"
+              style="font-size: 13px; color: var(--muted)"
+            ></span>
+          </div>
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 32px">
+                  <input
+                    type="checkbox"
+                    class="sel-checkbox"
+                    id="select-all"
+                    onchange="toggleSelectAll(this)"
+                    title="Select all"
+                  />
+                </th>
+                <th onclick="sortTable('date')">Date ⇅</th>
+                <th onclick="sortTable('ticker')">Ticker ⇅</th>
+                <th>Dir</th>
+                <th onclick="sortTable('pattern')">Pattern ⇅</th>
+                <th>Entry</th>
+                <th>Exit</th>
+                <th>Shares</th>
+                <th onclick="sortTable('pnl')">P&amp;L ⇅</th>
+                <th>Cat</th>
+                <th>RVol</th>
+                <th>Entry</th>
+                <th>Exit</th>
+                <th>Rules</th>
+                <th>Emotion</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="trade-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ===== TAB 3: PLAYBOOK ===== -->
+      <div id="tab-playbook" class="tab-panel">
+        <div class="tab-header">
+          <div>
+            <div class="tab-eyebrow">// Setup Library</div>
+            <div class="tab-title">Playbook</div>
+            <div class="tab-sub" id="pb-subtitle">
+              Pattern Setups · Interactive Checklists · Live Stats
+            </div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="pbAddPattern()">
+            + Add Pattern
+          </button>
+        </div>
+        <div class="pb-layout">
+          <div class="pb-nav" id="pb-nav"></div>
+          <div id="pb-cards"></div>
+        </div>
+      </div>
+
+      <!-- ===== TAB 4: COACH ===== -->
+      <div id="tab-coach" class="tab-panel">
+        <div class="tab-header">
+          <div>
+            <div class="tab-eyebrow">// AI Analysis</div>
+            <div class="tab-title">Performance Coach</div>
+            <div class="tab-sub">
+              Local rule engine · Pattern analysis · AI coaching
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="renderCoach()">
+            Refresh Analysis
+          </button>
+        </div>
+        <div id="coach-insights"></div>
+        <!-- Claude API section -->
+        <div class="claude-box">
+          <div class="claude-hdr" onclick="toggleClaude()">
+            <span class="section-label"
+              >Claude AI Deep Analysis
+              <span style="color: var(--muted); font-weight: 400"
+                >(optional)</span
+              ></span
+            >
+            <span
+              id="claude-toggle-lbl"
+              style="font-size: 13px; color: var(--muted)"
+              >▼ expand</span
+            >
+          </div>
+          <div class="claude-body" id="claude-body">
+            <div class="fg mb-12" style="margin-top: 10px">
+              <label
+                >Anthropic API Key (stored locally, never sent elsewhere)</label
+              >
+              <input
+                type="password"
+                id="claude-key"
+                placeholder="sk-ant-…"
+                oninput="localStorage.setItem('smc_claude_key', this.value)"
+              />
+            </div>
+            <div class="fg mb-12">
+              <label>Write-ups from last 7 days (auto-filled)</label>
+              <textarea
+                id="claude-writeups"
+                style="min-height: 120px; font-size: 13px; line-height: 1.6"
+              ></textarea>
+            </div>
+            <button
+              class="btn btn-primary"
+              onclick="sendToClaude()"
+              id="claude-send-btn"
+            >
+              Send to Claude for Deep Analysis
+            </button>
+            <div class="claude-resp" id="claude-resp"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== TAB 5: CALENDAR ===== -->
+      <div id="tab-calendar" class="tab-panel">
+        <div class="cal-hdr">
+          <div class="tab-title">Calendar</div>
+          <div style="display: flex; align-items: center; gap: 8px">
+            <button class="yr-btn" onclick="changeYear(-1)">‹</button>
+            <span class="yr-disp" id="yr-display"></span>
+            <button class="yr-btn" onclick="changeYear(1)">›</button>
+          </div>
+          <div style="display: flex; gap: 16px; margin-left: 8px">
+            <span style="font-size: 14px; color: var(--muted)"
+              >Year P&amp;L:
+              <span id="cal-year-pnl" style="font-weight: 600"></span
+            ></span>
+            <span style="font-size: 11px; color: var(--muted)"
+              >Trading Days:
+              <span
+                id="cal-trading-days"
+                style="color: var(--text); font-weight: 600; font-size: 14px"
+              ></span
+            ></span>
+          </div>
+        </div>
+        <div class="months-grid" id="months-grid"></div>
+        <div class="day-detail" id="day-detail">
+          <div class="day-detail-title" id="day-detail-title"></div>
+          <div id="day-detail-trades"></div>
+        </div>
+      </div>
+
+      <!-- ===== TAB 6: ANALYTICS ===== -->
+      <div id="tab-analytics" class="tab-panel">
+        <div class="tab-header">
+          <div>
+            <div class="tab-eyebrow">// Performance</div>
+            <div class="tab-title">Analytics</div>
+            <div class="tab-sub" id="an-trade-count"></div>
+          </div>
+          <div class="flex gap-8">
+            <select
+              id="an-filter-sym"
+              class="btn btn-secondary btn-sm"
+              onchange="renderAnalytics()"
+              style="
+                font-size: 13px;
+                height: 32px;
+                background: transparent;
+                color: var(--muted);
+                border: 1px solid var(--border);
+              "
+            >
+              <option value="">All Symbols</option>
+            </select>
+            <select
+              id="an-filter-period"
+              class="btn btn-secondary btn-sm"
+              onchange="renderAnalytics()"
+              style="
+                font-size: 13px;
+                height: 32px;
+                background: transparent;
+                color: var(--muted);
+                border: 1px solid var(--border);
+              "
+            >
+              <option value="all">All Time</option>
+              <option value="week">This Week</option>
+              <option value="month">This Month</option>
+              <option value="year">This Year</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Sub-navigation -->
+        <div class="an-subnav" id="an-subnav">
+          <button class="an-tab active" onclick="switchAnTab('overview', this)">
+            Overview
+          </button>
+          <button class="an-tab" onclick="switchAnTab('stats', this)">
+            Detailed Stats
+          </button>
+          <button class="an-tab" onclick="switchAnTab('days', this)">
+            Days / Times
+          </button>
+          <button class="an-tab" onclick="switchAnTab('price', this)">
+            Price / Volume
+          </button>
+          <button class="an-tab" onclick="switchAnTab('streaks', this)">
+            Win/Loss
+          </button>
+        </div>
+
+        <!-- Overview panel -->
+        <div id="an-overview" class="an-panel active">
+          <div id="an-overview-content"></div>
+        </div>
+
+        <!-- Stats panel -->
+        <div id="an-stats" class="an-panel">
+          <div id="an-stats-content"></div>
+        </div>
+
+        <!-- Days/Times panel -->
+        <div id="an-days" class="an-panel">
+          <div class="charts-grid" id="an-days-content"></div>
+        </div>
+
+        <!-- Price/Volume panel -->
+        <div id="an-price" class="an-panel">
+          <div class="charts-grid" id="an-price-content"></div>
+        </div>
+
+        <!-- Win/Loss panel -->
+        <div id="an-streaks" class="an-panel">
+          <div id="an-streaks-content"></div>
+        </div>
+      </div>
+    </div>
+    <!-- /main -->
+
+    <!-- GOALS MODAL -->
+    <div class="modal-bg" id="modal-goals">
+      <div class="modal">
+        <div class="modal-hdr">
+          <span class="modal-title">Edit Goals</span>
+          <button class="modal-close" onclick="closeModal('modal-goals')">
+            ✕
+          </button>
+        </div>
+        <div class="fgrid fgrid-2">
+          <div class="fg">
+            <label>Daily Goal ($)</label
+            ><input type="number" id="g-daily" placeholder="600" />
+          </div>
+          <div class="fg">
+            <label>Weekly Goal ($)</label
+            ><input type="number" id="g-weekly" placeholder="3000" />
+          </div>
+          <div class="fg">
+            <label>Monthly Goal ($)</label
+            ><input type="number" id="g-monthly" placeholder="12000" />
+          </div>
+          <div class="fg">
+            <label>Yearly Goal ($)</label
+            ><input type="number" id="g-yearly" placeholder="150000" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('modal-goals')">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveGoalsFromModal()">
+            Save Goals
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSV MODAL -->
+    <div class="modal-bg" id="modal-csv">
+      <div class="modal" style="max-width: 700px; min-width: 540px">
+        <div class="modal-hdr">
+          <span class="modal-title">Import CSV</span>
+          <button class="modal-close" onclick="closeModal('modal-csv')">
+            ✕
+          </button>
+        </div>
+        <div class="csv-format-hint">
+          <span
+            style="
+              color: var(--orange);
+              font-family: var(--display);
+              font-weight: 700;
+            "
+            >// TOS FORMAT DETECTED AUTOMATICALLY</span
+          ><br />
+          Supports: ThinkorSwim Account Statement · TD Ameritrade · Webull ·
+          Generic broker exports<br />
+          TOS tip: Export → Trade History tab → Save as CSV. The parser will
+          auto-detect and map columns.
+        </div>
+        <div class="fg mb-12">
+          <label>Select CSV File</label>
+          <input
+            type="file"
+            id="csv-file"
+            accept=".csv"
+            onchange="parseCsvFile(this)"
+            style="
+              background: var(--bg);
+              border: 1px solid var(--border);
+              color: var(--text);
+              padding: 7px;
+              font-family: var(--mono);
+              font-size: 11px;
+            "
+          />
+        </div>
+        <div id="csv-mapper" style="display: none">
+          <div class="section-label mb-12" style="margin-bottom: 10px">
+            Map CSV Columns → App Fields
+          </div>
+          <div class="csv-map-grid" id="csv-map-grid"></div>
+        </div>
+        <div id="csv-preview" class="csv-info"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('modal-csv')">
+            Cancel
+          </button>
+          <button
+            class="btn btn-primary"
+            id="csv-import-btn"
+            onclick="importCsv()"
+            style="display: none"
+          >
+            Import Trades
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EDIT TRADE MODAL -->
+    <div class="modal-bg" id="modal-edit">
+      <div class="modal" style="max-width: 700px; min-width: 580px">
+        <div class="modal-hdr">
+          <span class="modal-title">Edit Trade</span>
+          <button class="modal-close" onclick="closeModal('modal-edit')">
+            ✕
+          </button>
+        </div>
+        <div id="edit-form-body"></div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" onclick="closeModal('modal-edit')">
+            Cancel
+          </button>
+          <button class="btn btn-primary" onclick="saveEditedTrade()">
+            Save Changes
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="js/data.js?v=2"></script>
+    <script src="js/ui.js?v=2"></script>
+    <script src="js/log.js?v=2"></script>
+    <script src="js/playbook.js?v=2"></script>
+    <script src="js/coach.js?v=2"></script>
+    <script src="js/analytics.js?v=2"></script>
+  </body>
+</html>
