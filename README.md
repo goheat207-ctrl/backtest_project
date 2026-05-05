@@ -1,3 +1,5 @@
+<img width="1869" height="971" alt="Screenshot 2026-05-04 at 15-07-54 Small Cap Trading Dashboard" src="https://github.com/user-attachments/assets/a64c2065-1c84-4dfb-aab3-97d4e70123c8" />
+
 # Backtest Project
 
 Backtest Project is a personal trading journal, analytics dashboard, and performance review tool built for small-cap traders who want real feedback from their own data.
