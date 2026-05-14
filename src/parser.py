@@ -67,7 +67,7 @@ def _parse_lines(lines: list[str], file_date: str, source_name: str = "upload") 
     Core parser: given raw text lines from a TOS Account Statement and the file_date string,
     return (executions_df, warnings).
     """
-    from io import StringIO
+    import csv as _csv
     warnings = []
 
     # Find Cash Balance section header
@@ -81,39 +81,73 @@ def _parse_lines(lines: list[str], file_date: str, source_name: str = "upload") 
         warnings.append(f"{source_name}: 'Cash Balance' section not found.")
         return pd.DataFrame(), warnings
 
-    # Data rows start at cb_start + 2, stop at blank line or next section
-    data_lines = []
-    for line in lines[cb_start + 2:]:
-        stripped = line.strip()
-        if stripped == "" or stripped.startswith("Futures Statements") or stripped.startswith("Forex Statements") or stripped.startswith("Crypto"):
-            break
-        data_lines.append(stripped)
+    # Find the column header row — skip any blank lines after "Cash Balance"
+    header_idx = cb_start + 1
+    while header_idx < len(lines) and not lines[header_idx].strip():
+        header_idx += 1
 
-    if not data_lines:
-        warnings.append(f"{source_name}: No data rows found in Cash Balance section.")
+    if header_idx >= len(lines):
+        warnings.append(f"{source_name}: No header found in Cash Balance section.")
         return pd.DataFrame(), warnings
 
-    header = "DATE,TIME,TYPE,REF #,DESCRIPTION,Misc Fees,Commissions & Fees,AMOUNT,BALANCE\n"
-    csv_text = header + "\n".join(data_lines)
+    # Read actual column names dynamically (robust to column additions / reordering)
     try:
-        df = pd.read_csv(StringIO(csv_text), dtype=str)
-    except Exception as e:
-        warnings.append(f"{source_name}: CSV parse error: {e}")
+        header_cells = [c.strip().lower() for c in next(_csv.reader([lines[header_idx]]))]
+    except Exception:
+        warnings.append(f"{source_name}: Could not parse Cash Balance column header.")
         return pd.DataFrame(), warnings
 
-    df = df[df["TYPE"].str.strip() == "TRD"].copy()
+    def _col_idx(patterns):
+        for idx, h in enumerate(header_cells):
+            for p in patterns:
+                if p in h:
+                    return idx
+        return -1
 
-    if df.empty:
-        warnings.append(f"{source_name}: No TRD rows found.")
+    i_date = _col_idx(["date"])
+    i_time = _col_idx(["time"])
+    i_type = _col_idx(["type"])
+    i_desc = _col_idx(["description", "desc"])
+    i_ref  = _col_idx(["ref #", "ref#", "ref"])
+    i_amt  = _col_idx(["amount"])
+
+    if i_type < 0 or i_desc < 0:
+        warnings.append(f"{source_name}: Required columns (TYPE, DESCRIPTION) not found in Cash Balance header.")
         return pd.DataFrame(), warnings
+
+    # Section headers that mark the end of the Cash Balance block
+    _STOP_SECTIONS = (
+        "Futures Statements", "Forex Statements", "Crypto Statements", "Crypto",
+        "Profits and Losses", "Account Trade History", "Account Summary",
+        "Symbol Ownership", "Order History",
+    )
 
     records = []
-    for _, row in df.iterrows():
-        ref_raw = row.get("REF #", "")
+    for line in lines[header_idx + 1:]:
+        stripped = line.strip()
+        if not stripped:
+            # Skip blank lines within the section (TOS sometimes inserts blank
+            # lines between trading dates; do NOT treat them as section endings)
+            continue
+        if any(stripped == s or stripped.startswith(s + ",") for s in _STOP_SECTIONS):
+            break
+
+        try:
+            cells = next(_csv.reader([stripped]))
+        except Exception:
+            continue
+
+        if len(cells) <= i_type or cells[i_type].strip() != "TRD":
+            continue
+
+        date_str = cells[i_date].strip() if i_date >= 0 and i_date < len(cells) else ""
+        time_str = cells[i_time].strip() if i_time >= 0 and i_time < len(cells) else ""
+        ref_raw  = cells[i_ref].strip()  if i_ref  >= 0 and i_ref  < len(cells) else ""
+        desc     = cells[i_desc].strip() if i_desc >= 0 and i_desc < len(cells) else ""
+        amt_raw  = cells[i_amt].strip()  if i_amt  >= 0 and i_amt  < len(cells) else ""
+
         ref_id = _clean_ref(ref_raw)
 
-        date_str = str(row["DATE"]).strip()
-        time_str = str(row["TIME"]).strip()
         try:
             dt = pd.to_datetime(f"{date_str} {time_str}", format="%m/%d/%y %H:%M:%S")
         except Exception:
@@ -123,13 +157,12 @@ def _parse_lines(lines: list[str], file_date: str, source_name: str = "upload") 
                 warnings.append(f"Could not parse datetime: {date_str} {time_str}")
                 continue
 
-        desc = str(row.get("DESCRIPTION", "")).strip()
         parsed = _parse_description(desc)
         if parsed is None:
             continue
 
         side, qty, symbol, price = parsed
-        amount = _parse_amount(row.get("AMOUNT", ""))
+        amount = _parse_amount(amt_raw)
 
         records.append({
             "ref_id": ref_id,

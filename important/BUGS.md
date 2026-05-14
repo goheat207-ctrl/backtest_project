@@ -2,6 +2,9 @@
 
 ## Open
 
+### B-007 — Imported trades have no Pattern, Direction, Grades, or Catalyst fields
+Trades imported from a TOS Account Statement CSV have no trade-journal metadata (pattern, direction, entry/exit grades, catalyst, emotional state). These fields default to blank or "Long"/"Calm" in `adaptApiTrade()` because TOS does not export them. The user must manually edit each imported trade to fill these in. This is expected behavior documented in B-003 and the import success message, but can surprise users who expect full data. Proper fix: add an "annotate after import" workflow.
+
 ### B-005 — Flask static file caching requires manual version bump
 Flask's `send_from_directory` sets `Cache-Control: public, max-age=43200` (12 hours) for static files. After any JS change, browsers serve the old cached file until the cache expires or the user hard-refreshes. Workaround: increment the `?v=N` query string on affected `<script src>` tags in `index.html`. Risk: easy to forget, leaving users on stale code. Proper fix: automate the version bump or switch to content-hash naming.
 
@@ -41,3 +44,9 @@ The SQLite `trades` table only stores gross P&L. Net P&L (after commissions/fees
 
 ### B-R05 — `dashboard/js/journal.js` was orphaned
 **Resolved 0.4.0** — File deleted. It targeted DOM elements that don't exist in `index.html` and was never loaded.
+
+### B-R08 — CSV import silently saved 0 trades when backend parser hit blank lines
+**Resolved 0.7.0** — Three related bugs caused the Daily Log to show no trades after import:
+1. `_parse_lines()` in `src/parser.py` used `break` on blank lines inside the Cash Balance section. TOS sometimes inserts blank lines between trading dates within the section, causing the parser to stop after the first date. Fixed by changing `break` to `continue` for blank lines, and stopping only on recognized section-header names.
+2. `_parse_lines()` assumed the column header was exactly one line after "Cash Balance" (hardcoded `cb_start + 2` offset). Fixed by dynamically scanning for the first non-blank line after the section header, and reading actual column names from the file (robust to new/reordered columns).
+3. `upload_csv()` in `server.py` would crash (KeyError) if `merge_trades_by_day()` returned an empty DataFrame. Fixed with an early-exit guard. `importTOSTrades()` in `log.js` only checked `result.error` string but not `result.errors` array, so 0-trade imports appeared to succeed silently. Fixed by surfacing a descriptive alert when `trades_found === 0`. Wrong export hint in the CSV modal fixed from "Trade History tab" to "Monitor → Account Statement → Export to File".

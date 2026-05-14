@@ -953,16 +953,36 @@ async function importTOSTrades() {
       return;
     }
 
+    // Surface server-side parse warnings even on a 200 response
+    if (result.trades_found === 0) {
+      const errDetail = (result.errors && result.errors.length)
+        ? "\n\nServer detail:\n" + result.errors.join("\n")
+        : "";
+      alert(
+        "⚠ Import finished but no trades were saved.\n\n" +
+        "Common causes:\n" +
+        "• Wrong export format — use Monitor → Account Statement → Export to File (not Trade History).\n" +
+        "• All positions in the file are still open (no completed round trips).\n" +
+        "• The file contains only options/futures which are not yet supported." +
+        errDetail
+      );
+      closeModal("modal-csv");
+      return;
+    }
+
     closeModal("modal-csv");
     await loadData();
 
     const dupeNote = result.already_in_db > 0
       ? `\n${result.already_in_db} duplicate(s) skipped (already in database).`
       : "";
+    const warnNote = (result.errors && result.errors.length)
+      ? `\n\nWarnings:\n${result.errors.join("\n")}`
+      : "";
     alert(
       `✓ Import complete!\n` +
       `${result.new_trades} new trade(s) added · ${result.trades_found} total found.${dupeNote}\n\n` +
-      `Next step: open each trade and fill in Pattern, grades, and notes.`
+      `Next step: open each trade and fill in Pattern, grades, and notes.${warnNote}`
     );
   } catch (err) {
     alert("Upload error: " + err.message);

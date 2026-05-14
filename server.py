@@ -301,6 +301,12 @@ def upload_csv():
     except Exception as e:
         return jsonify({"error": f"Match failed: {e}"}), 422
 
+    if trades_df.empty:
+        return jsonify({
+            "trades_found": 0, "new_trades": 0, "already_in_db": 0,
+            "errors": errors or ["No completed round-trip trades found. Positions may still be open or the date range may only contain partial legs."],
+        }), 200
+
     # Determine file_date and which trades are new
     file_date = str(executions_df["file_date"].iloc[0]) if "file_date" in executions_df.columns else "unknown"
     existing_ids = trades_in_db_for_file(file_date)

@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.7.0 - 2026-05-14
+
+### Bug Fixes — CSV Import (Issue #2: Daily Log BUG)
+
+- **`src/parser.py` — `_parse_lines()` rewritten to be format-robust**
+  - Old code used a hardcoded `cb_start + 2` offset to skip the column header, assuming exactly zero blank lines between "Cash Balance" and the header row. Any blank line at that position caused the parser to read the column header as data or skip it entirely.
+  - Old code stopped at the *first blank line* inside the Cash Balance data block. TOS sometimes inserts blank lines between trading dates within the section; this caused all trades after the first gap to be silently dropped.
+  - New code dynamically locates the column header row by scanning forward past blank lines, reads actual column names from the file (robust to new/reordered TOS columns), and then iterates row-by-row with the `csv` module — skipping blank lines with `continue` rather than `break`, and stopping only on recognized section-header names (`Futures Statements`, `Forex Statements`, `Profits and Losses`, etc.).
+
+- **`server.py` — `upload_csv()` crash fix**
+  - If `merge_trades_by_day()` returned an empty DataFrame (all positions still open, or no round trips), accessing `trades_df["trade_id"]` raised `KeyError`, returning a 500 to the browser. Added an early-exit guard that returns `{"trades_found": 0, ...}` instead.
+
+- **`dashboard/js/log.js` — `importTOSTrades()` silent-failure fix**
+  - The response check only tested `result.error` (a string property). Server parse warnings arrive in `result.errors` (array). When 0 trades were found, the modal closed and the alert said "0 new trade(s) added" with no explanation.
+  - Now: if `result.trades_found === 0`, a descriptive alert explains the three most common causes (wrong export format, open positions, options not supported) and includes the raw server warnings.
+  - Warnings are also appended to the success alert when trades *were* found.
+
+- **`dashboard/index.html` — wrong export hint corrected**
+  - CSV modal said "Export → Trade History tab → Save as CSV". Changed to "Monitor → Account Statement → Export to File (not Trade History tab)". The Trade History export lacks the Cash Balance section the parser requires.
+  - All `?v=3` cache-busting strings bumped to `?v=4`.
+
+---
+
 ## 0.6.0 - 2026-05-04
 
 ### Features & Fixes

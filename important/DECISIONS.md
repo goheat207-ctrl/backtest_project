@@ -1,5 +1,15 @@
 ﻿# Decisions
 
+## 2026-05-14 — Rewrite `_parse_lines()` to parse rows individually instead of via `pd.read_csv`
+
+Decision: Replace the `pd.read_csv(StringIO(hardcoded_header + data_lines))` approach in `src/parser.py` with row-by-row parsing using the `csv` module directly.
+
+Why: The old approach assumed (1) exactly one line between "Cash Balance" and the column header, (2) no blank lines within the data block, and (3) the column order exactly matching a hardcoded header string. TOS CSVs vary — blank lines between trading dates within the Cash Balance section silently truncated the import. The new approach reads the actual column names from the file and iterates rows individually, making it robust to format variations without losing the simplicity of the flat-file parser.
+
+Rejected: Keeping `pd.read_csv` but just changing how we skip blank lines. The real fragility was the hardcoded column offset and hardcoded header string, not just the blank-line stop. Switching to row-by-row makes both issues go away cleanly.
+
+---
+
 ## 2026-05-03 — Remove Streamlit Stack
 
 Decision: Delete `app.py`, `launch.pyw`, `run.bat`, and `src/charts.py`.
